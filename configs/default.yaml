@@ -1,0 +1,71 @@
+# configs/default.yaml
+# Fick-Diffusion-Simulator 기본 실험 설정
+# 수정 후 scripts/train.py --config configs/default.yaml 로 실행
+
+# ── 물리 파라미터 ──────────────────────────────────────────────────────────
+physics:
+  D: 0.01          # 확산계수. 물 속 소분자 무차원화 기준값
+  x_bounds: [0.0, 1.0]
+  y_bounds: [0.0, 1.0]
+  T: 0.5           # 최대 시뮬레이션 시간
+
+# ── 초기조건 ───────────────────────────────────────────────────────────────
+initial_condition:
+  type: gaussian   # 'gaussian' | 'uniform'
+  source_x: 0.5
+  source_y: 0.5
+  sigma: 0.05      # Gaussian 표준편차. 작을수록 뾰족 → 학습 난이도 상승
+  c_max: 1.0
+
+# ── 네트워크 아키텍처 ──────────────────────────────────────────────────────
+network:
+  hidden_layers: [64, 64, 64, 64]   # 4층 × 64 뉴런
+  use_fourier: true                  # Fourier embedding 사용 여부
+  fourier_dim: 64                    # Fourier embedding 차원
+
+# ── 손실 가중치 ────────────────────────────────────────────────────────────
+loss:
+  lambda_bc: 10.0   # 경계조건 가중치. 크게 → BC 우선 만족
+  lambda_ic: 10.0   # 초기조건 가중치
+
+# ── 샘플링 ─────────────────────────────────────────────────────────────────
+sampling:
+  n_pde: 8000        # PDE 콜로케이션 포인트 수
+  n_bc: 800          # 경계조건 포인트 수 (4면 합계)
+  n_ic: 800          # 초기조건 포인트 수
+  resample_every: 100  # N epoch마다 리샘플링
+  strategy: lhs        # 'lhs' | 'uniform'
+
+# ── Adam 옵티마이저 ────────────────────────────────────────────────────────
+adam:
+  epochs: 3000
+  lr: 0.001
+  scheduler_step: 1000   # StepLR: N epoch마다 lr 감소
+  scheduler_gamma: 0.5   # lr 감소 비율
+
+# ── L-BFGS 옵티마이저 ─────────────────────────────────────────────────────
+lbfgs:
+  epochs: 200          # outer loop 반복 수
+  lr: 0.5
+  max_iter: 100        # 내부 line search 반복
+  history_size: 50
+
+# ── 학습 설정 ──────────────────────────────────────────────────────────────
+training:
+  log_every: 200       # 손실 출력 주기
+  save_dir: outputs/checkpoints
+  seed: 42
+
+# ── 평가/시각화 설정 ───────────────────────────────────────────────────────
+evaluation:
+  t_eval: [0.02, 0.05, 0.10, 0.20, 0.30, 0.50]
+  N_terms: 20          # 해석해 Fourier 급수 항 수
+  nx: 80
+  ny: 80
+
+visualization:
+  n_frames: 40
+  fps: 8
+  nx: 60
+  ny: 60
+  snapshot_times: [0.01, 0.05, 0.10, 0.20, 0.35, 0.50]
