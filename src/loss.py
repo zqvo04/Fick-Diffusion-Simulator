@@ -28,32 +28,28 @@ from typing import Tuple, Dict
 def grad(outputs: torch.Tensor, inputs: torch.Tensor) -> torch.Tensor:
     """
     outputs를 inputs에 대해 미분.
-    
-    핵심 파라미터 설명:
-      grad_outputs=torch.ones_like(outputs)
-        → outputs가 스칼라가 아닌 벡터(N,1)이므로 필요.
-          수학적으로는 ∂(Σ outputs_i) / ∂inputs 와 동일.
-          각 포인트 i에서의 ∂c_i/∂x_i 를 독립적으로 계산.
-      
-      create_graph=True
-        → 이 미분 연산 자체를 computational graph에 포함.
-          2차 미분(∂²c/∂x²) 계산 시 필수.
-          False면 1차 미분 후 graph가 끊겨서 다시 미분 불가.
-      
-      retain_graph=True  
-        → 같은 forward graph를 여러 번 사용 (∂c/∂t, ∂c/∂x, ∂c/∂y 모두 필요).
-          False면 첫 미분 후 graph 해제 → 두 번째 grad() 호출 시 에러.
-    
-    Returns:
-        outputs와 동일한 shape의 미분값 텐서
+
+    allow_unused=True:
+        inputs가 outputs 계산에 사용되지 않으면 None 반환.
+        None → differentiable zero 로 처리 (단순 zeros_like 사용 금지).
+
+    ❌ zeros_like(inputs) : leaf tensor, grad_fn 없음 → 2차 미분 시 에러
+    ✅ (outputs.sum()*0).expand(inputs.shape) : grad_fn 보유, 값 = 0
     """
-    return torch.autograd.grad(
+    result = torch.autograd.grad(
         outputs,
         inputs,
-        grad_outputs=torch.ones_like(outputs),  # 벡터-Jacobian product
-        create_graph=True,   # 2차 미분 가능하도록 graph 유지
-        retain_graph=True,   # 여러 입력 변수에 대해 반복 미분 허용
-    )[0]                     # grad()는 tuple 반환 → [0]으로 텐서 추출
+        grad_outputs=torch.ones_like(outputs),
+        create_graph=True,
+        retain_graph=True,
+        allow_unused=True,
+    )[0]
+
+    if result is None:
+        # outputs 그래프에 연결된 differentiable zero 반환
+        return (outputs.sum() * 0.0).expand(inputs.shape)
+
+    return result
 
 
 # ────────────────────────────────────────────────────────────────────────────
