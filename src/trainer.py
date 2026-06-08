@@ -177,6 +177,11 @@ class Trainer:
 
     # ── Stage 1: Adam ──────────────────────────────────────────────────────
     def _train_adam(self):
+        # ★ 명시적으로 training mode 설정
+        # 이유: evaluate.py가 model.eval()을 호출할 수 있음.
+        #       eval() 상태에서는 일부 환경에서 autograd 동작이 달라질 수 있음.
+        self.model.train()
+
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfg.adam_lr)
 
         # 학습률 스케줄러: 1000 epoch마다 0.5 감소
@@ -254,8 +259,8 @@ class Trainer:
             self.model.parameters(),
             lr=self.cfg.lbfgs_lr,
             max_iter=self.cfg.lbfgs_max_iter,
-            history_size=50,        # Hessian 근사에 사용할 과거 gradient 수
-            line_search_fn="strong_wolfe",  # 안정적인 line search
+            history_size=50,
+            line_search_fn="strong_wolfe",
         )
 
         print(f"\n{'='*55}")
@@ -264,18 +269,34 @@ class Trainer:
         t0 = time.time()
 
         # L-BFGS는 포인트 고정 (리샘플링 X)
-        # 이유: 손실 지형이 바뀌면 2차 근사가 무효화됨
         pde_b, bc_b, ic_b = self._get_batch()
         step_counter = [0]
 
+        # ★ L-BFGS 진입 전 training mode 재확인
+        self.model.train()
+
         def closure():
             optimizer.zero_grad()
+
+            # ★ input tensor의 누적 grad 제거
+            # 이유: loss.backward()가 requires_grad=True인 입력 텐서에도
+            #       gradient를 누적함. optimizer.zero_grad()는 파라미터만
+            #       처리하므로 입력 텐서 grad는 수동으로 제거 필요.
+            for tensor in [pde_b["x"], pde_b["y"], pde_b["t"]]:
+                if tensor.grad is not None:
+                    tensor.grad = None
+
             loss, log = self.criterion(self.model, pde_b, bc_b, ic_b)
-            loss.backward()
+
+            # ★ retain_graph=True
+            # 이유: L-BFGS는 closure를 line search 중 여러 번 호출함.
+            #       loss.py의 grad()가 create_graph=True로 2차 미분 graph를
+            #       구성하므로, backward 후 graph를 보존해야 다음 closure
+            #       호출 시 같은 포인트로 재계산 가능.
+            loss.backward(retain_graph=True)
 
             step_counter[0] += 1
 
-            # 로그 저장 (max_iter번 호출되므로 일부만 저장)
             if step_counter[0] % 10 == 0:
                 epoch_tag = self.cfg.adam_epochs + step_counter[0]
                 self.history["total"].append(log["total"])
