@@ -1,0 +1,18 @@
+# 훈련 결과물 (용량 큼, 재생성 가능)
+outputs/checkpoints/
+outputs/animation.gif
+outputs/figures/
+
+# Python 캐시
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# 환경
+.env
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
