@@ -8,7 +8,7 @@ PyTorch autograd로 편미분을 직접 계산하여 Fick의 제2법칙을 신�
 
 ## 데모
 
-![2D Diffusion Animation](outputs/animation.gif)
+![2D Diffusion Animation](assets/animation.gif)
 
 *PINN 예측(좌) vs 해석해(우) — Gaussian point source의 시간 경과에 따른 확산*
 
@@ -84,7 +84,7 @@ Fick-Diffusion-Simulator/
 ### 설치
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Fick-Diffusion-Simulator.git
+git clone https://github.com/zqvo04/Fick-Diffusion-Simulator.git
 cd Fick-Diffusion-Simulator
 pip install -r requirements.txt
 ```
@@ -124,21 +124,21 @@ pytest tests/test_loss.py -v
 
 ### 손실 곡선
 
-![Loss History](outputs/figures/loss_history.png)
+![Loss History](assets/loss_history.png)
 
 Adam(좌) → L-BFGS(우, 회색 점선 이후) 전환 시 급격한 수렴 확인.
 
 ### 시각별 스냅샷
 
-![Snapshot Grid](outputs/figures/snapshot_grid.png)
+![Snapshot Grid](assets/snapshot_grid.png)
 
 *상단: PINN 예측 / 하단: 해석해 — 시간이 지남에 따라 경계조건을 만족하며 확산*
 
 ### 오차 비교
 
-![Error Comparison](outputs/figures/error_comparison_t010.png)
+![Error Comparison](assets/error_comparison.png)
 
-![L2 Error vs Time](outputs/figures/l2_error_vs_time.png)
+![L2 Error vs Time](assets/l2_error_vs_time.png)
 
 ---
 
